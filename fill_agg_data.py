@@ -13,11 +13,10 @@ find_id_by_row =           'SELECT id FROM raw_data LIMIT %s, 1;'
 last_processed_id_select = 'SELECT id FROM last_processed_id LIMIT 1'
 agg_data_insert_ids =      'INSERT INTO agg_data (user_id) VALUES (%s);'
 check_agg_data =           'SELECT * FROM agg_data LIMIT 1'
+count_all_rows =           'SELECT COUNT(*) FROM raw_data;'
 
 ROW_NUM = 10000
 
-db = MySQLdb.connect(dbc.host, dbc.user, dbc.passwd, dbc.db_name)
-cur = db.cursor()
 
 def check_agg_empty():
     user_ids = []
@@ -30,7 +29,7 @@ def check_agg_empty():
 
 def get_rows(number_of_rows, last_id):
     cur.execute(set_rank)
-    cur.execute(find_row_number, (last_id,))
+    cur.execute(find_row_number, last_id)
     last_row_number = cur.fetchone()
     print(last_id, last_row_number)
     cur.execute(group_data, (last_row_number[0]-1, last_row_number[0]+number_of_rows))
@@ -69,7 +68,14 @@ if __name__=='__main__':
         print(last_id)
         if last_id:
             cur.execute(last_processed_id_update, last_id)
-            db.commit()
+        else:
+            cur.execute(count_all_rows)
+            rows_num = cur.fetchone()
+            cur.execute(find_id_by_row, (rows_num[0]-1,))
+            last_id = cur.fetchone()
+            cur.execute(last_processed_id_update, last_id)
+            last_id = None
+        db.commit() 
  
     print("FINISH")
   #  db.commit()
